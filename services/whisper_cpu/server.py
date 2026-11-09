@@ -69,10 +69,12 @@ async def transcribe(request: Request) -> dict[str, object]:
             temp_audio.write(audio)
             temp_path = temp_audio.name
 
+        requested_language = request.headers.get("x-localghost-language", "es").strip().lower()
+        language = None if requested_language in {"", "auto"} else requested_language
         segments_iter, info = whisper.transcribe(
             temp_path,
-            language="es",
-            beam_size=1,
+            language=language,
+            beam_size=5,
             vad_filter=True,
             condition_on_previous_text=False,
         )

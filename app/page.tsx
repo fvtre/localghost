@@ -33,7 +33,7 @@ export default function Page() {
   const [transcriptionMode, setTranscriptionMode] = useState<TranscriptionMode>('after')
   const [liveStatus, setLiveStatus] = useState('')
   const [ollama, setOllama] = useState<{ connected: boolean; models: { name: string }[] }>({ connected: false, models: [] })
-  const [settings, setSettings] = useState<LocalSettings>({ performanceProfile: 'lite', whisperModel: 'Systran/faster-whisper-small', ollamaModel: 'qwen3:1.7b', ollamaUrl: 'http://127.0.0.1:11434', obsidianPath: '', retentionDays: 0, googleCalendarClientId: '' })
+  const [settings, setSettings] = useState<LocalSettings>({ performanceProfile: 'lite', whisperModel: 'Systran/faster-whisper-small', whisperLanguage: 'es', ollamaModel: 'qwen3:1.7b', ollamaUrl: 'http://127.0.0.1:11434', obsidianPath: '', retentionDays: 0, googleCalendarClientId: '' })
   const [sessionTitle, setSessionTitle] = useState('')
   const [stream, setStream] = useState<MediaStream | null>(null)
   const activeStream = useRef<MediaStream | null>(null)
@@ -522,6 +522,7 @@ async function transcribeAudio(audio: Blob, settings: LocalSettings, channel: St
   const form = new FormData()
   form.set('audio', audio, `localghost-${channel}-${Date.now()}.${extension}`)
   form.set('model', settings.whisperModel)
+  form.set('language', settings.whisperLanguage)
   const response = await fetch('/api/transcribe', { method: 'POST', body: form })
   const data = await response.json() as { error?: string; text?: string; segments?: { start?: number; text?: string }[] }
   if (!response.ok) throw new Error(data.error || 'Whisper no pudo transcribir el audio.')

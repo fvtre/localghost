@@ -12,13 +12,13 @@ export type MeetingRecord = {
   summary: string
   tags: string[]
 }
-export type LocalSettings = { performanceProfile: 'lite' | 'balanced' | 'quality'; whisperModel: string; ollamaModel: string; ollamaUrl: string; obsidianPath: string; retentionDays: 0 | 1 | 7 | 30 | 90; googleCalendarClientId: string }
+export type LocalSettings = { performanceProfile: 'lite' | 'balanced' | 'quality'; whisperModel: string; whisperLanguage: 'auto' | 'es' | 'en' | 'pt' | 'fr' | 'de' | 'it'; ollamaModel: string; ollamaUrl: string; obsidianPath: string; retentionDays: 0 | 1 | 7 | 30 | 90; googleCalendarClientId: string }
 
 const DB_NAME = 'localghost-db'
 const DB_VERSION = 1
 const MEETINGS = 'meetings'
 const SETTINGS = 'settings'
-const defaults: LocalSettings = { performanceProfile: 'lite', whisperModel: 'Systran/faster-whisper-small', ollamaModel: 'qwen3:1.7b', ollamaUrl: 'http://127.0.0.1:11434', obsidianPath: '', retentionDays: 0, googleCalendarClientId: '' }
+const defaults: LocalSettings = { performanceProfile: 'lite', whisperModel: 'Systran/faster-whisper-small', whisperLanguage: 'es', ollamaModel: 'qwen3:1.7b', ollamaUrl: 'http://127.0.0.1:11434', obsidianPath: '', retentionDays: 0, googleCalendarClientId: '' }
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {

@@ -14,12 +14,14 @@ export async function POST(request: Request) {
     const form = await request.formData()
     const audio = form.get('audio')
     const model = form.get('model')?.toString() || 'Systran/faster-whisper-small'
+    const language = form.get('language')?.toString() || 'es'
     if (!(audio instanceof File)) return NextResponse.json({ error: 'No se recibió un archivo de audio.' }, { status: 400 })
     const response = await fetch(`${baseUrl}/v1/audio/transcriptions`, {
       method: 'POST',
       headers: {
         'content-type': audio.type || 'audio/webm',
         'x-localghost-model': model,
+        'x-localghost-language': language,
         'x-audio-filename': audio.name || 'recording.webm',
       },
       body: audio,
