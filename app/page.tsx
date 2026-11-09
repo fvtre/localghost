@@ -391,7 +391,14 @@ export default function Page() {
         try {
           const tracks = await splitStereoPcmWav(recordedAudio)
           const sources = tracks ? [{ audio: tracks[0], channel: 'mic' as const, speaker: 'Micrófono' }, { audio: tracks[1], channel: 'system' as const, speaker: 'Sistema' }] : [{ audio: recordedAudio, channel: 'mic' as const, speaker: 'Micrófono' }]
-          const results = await Promise.all(sources.map((source) => transcribeAudio(source.audio, settings, source.channel, source.speaker)))
+          const results = await Promise.all(sources.map(async (source) => {
+            const chunks = source.audio.type === 'audio/wav' ? await chunkWav(source.audio, 45) : [source.audio]
+            const lines: StoredTranscript[] = []
+            for (let index = 0; index < chunks.length; index++) {
+              lines.push(...await transcribeAudio(chunks[index], settings, source.channel, source.speaker, index * 45))
+            }
+            return lines
+          }))
           transcript = results.flat().sort((left, right) => left.time.localeCompare(right.time))
           transcriptionSucceeded = true
         } catch (error) { showToast(`Audio guardado; ${error instanceof Error ? error.message : 'Whisper no pudo transcribirlo.'}`) }
@@ -534,6 +541,29 @@ async function splitStereoPcmWav(audio: Blob): Promise<[Blob, Blob] | null> {
   }
   const sampleRate = view.getUint32(24, true)
   return [wavMono(channels[0], sampleRate), wavMono(channels[1], sampleRate)]
+}
+
+async function chunkWav(audio: Blob, seconds: number): Promise<Blob[]> {
+  const buffer = await audio.arrayBuffer()
+  if (buffer.byteLength <= 44) return []
+  const source = new Uint8Array(buffer)
+  const sampleRate = new DataView(buffer).getUint32(24, true) || 48000
+  const channels = new DataView(buffer).getUint16(22, true) || 1
+  const bitsPerSample = new DataView(buffer).getUint16(34, true) || 16
+  const bytesPerFrame = Math.max(1, channels * (bitsPerSample / 8))
+  const chunkBytes = Math.max(bytesPerFrame, Math.floor(sampleRate * seconds) * bytesPerFrame)
+  const chunks: Blob[] = []
+  for (let offset = 44; offset < source.length; offset += chunkBytes) {
+    const end = Math.min(source.length, offset + chunkBytes)
+    const bytes = new Uint8Array(44 + end - offset)
+    bytes.set(source.slice(0, 44), 0)
+    bytes.set(source.slice(offset, end), 44)
+    const view = new DataView(bytes.buffer)
+    view.setUint32(4, bytes.length - 8, true)
+    view.setUint32(40, bytes.length - 44, true)
+    chunks.push(new Blob([bytes], { type: 'audio/wav' }))
+  }
+  return chunks
 }
 
 function wavMono(samples: number[], sampleRate: number): Blob {
