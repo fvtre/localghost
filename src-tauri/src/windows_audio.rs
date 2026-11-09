@@ -15,9 +15,13 @@ struct AudioBuffers {
 
 impl CaptureSession {
     pub fn finish(self) -> Result<Vec<u8>, String> {
+        thread::sleep(Duration::from_millis(120));
         self.stop.store(true, Ordering::Relaxed);
         self.worker.join().map_err(|_| "La captura de audio se interrumpió inesperadamente.".to_string())??;
         let buffers = self.buffers.lock().map_err(|_| "No se pudo cerrar el almacenamiento temporal de audio.".to_string())?;
+        if buffers.mic.is_empty() && buffers.system.is_empty() {
+            return Err("WASAPI no entregó muestras de audio. Revisa el micrófono y la salida predeterminada de Windows.".to_string());
+        }
         Ok(stereo_wav(&buffers.mic, &buffers.system))
     }
 
@@ -25,6 +29,9 @@ impl CaptureSession {
         let buffers = self.buffers.lock().map_err(|_| "No se pudo leer el audio de la captura.".to_string())?;
         let total_frames = buffers.mic.len().max(buffers.system.len());
         let frames = total_frames.min(seconds.saturating_mul(48_000));
+        if frames == 0 {
+            return Err("WASAPI todavía no ha recibido muestras de audio.".to_string());
+        }
         let mic_start = buffers.mic.len().saturating_sub(frames);
         let system_start = buffers.system.len().saturating_sub(frames);
         let mic = &buffers.mic[mic_start..];
