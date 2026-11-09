@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Permite audio local, notificaciones y acceso al frontend de LocalGhost.","local":true,"windows":["main"],"permissions":["core:default","notification:default"]}}
